@@ -7,6 +7,10 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
+# Enable cross-platform builds using BuildKit-provided args
+ARG TARGETOS
+ARG TARGETARCH
+
 # Dependency caching
 COPY go.mod go.sum ./
 RUN go mod download
@@ -14,8 +18,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build a statically linked Linux binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
+# Build for the correct target platform
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o app .
 
 ########################################
 # Final (Runtime) Stage
