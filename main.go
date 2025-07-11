@@ -2,32 +2,35 @@ package main
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/realclientip/realclientip-go"
 )
 
-func realIPMiddleware(next http.Handler) http.Handler {
+func realIPMiddleware() fiber.Handler {
 	strat, err := realclientip.NewRightmostNonPrivateStrategy("X-Forwarded-For")
 	if err != nil {
 		log.Fatalf("strategy creation failed: %v", err)
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		realIP := strat.ClientIP(r.Header, r.RemoteAddr)
-		chain := r.Header.Get("X-Forwarded-For")
+	return func(c *fiber.Ctx) error {
+		realIP := strat.ClientIP(c.GetReqHeaders(), c.Context().RemoteAddr().String())
+		chain := c.Get("X-Forwarded-For")
 		log.Printf("RealIP: %s | ProxyChain: \"%s\" | %s %s %s",
-			realIP, chain, r.Method, r.URL.Path, r.Proto)
-		next.ServeHTTP(w, r)
-	})
-
+			realIP, chain, c.Method(), c.Path(), c.Protocol())
+		return c.Next()
+	}
 }
 
 func main() {
-	mux := http.NewServeMux()
-	mux.Handle("/", realIPMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello\n"))
-	})))
+	app := fiber.New()
+
+	app.Use(realIPMiddleware())
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello\n")
+	})
+
 	log.Println("Listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(app.Listen(":8080"))
 }
