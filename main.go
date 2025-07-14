@@ -19,14 +19,18 @@ func realIPMiddleware() fiber.Handler {
 		log.Printf("RealIP: %s | ProxyChain: \"%s\" | %s %s %s",
 			realIP, chain, c.Method(), c.Path(), c.Protocol())
 
-		log.Printf("context IP: %s\n", c.IPs())
+		// log.Printf("context IP: %s\n", c.IPs())
+
+		log.Printf("print x-forwarded-for: %s\n", c.Get("X-Forwarded-For"))
 		return c.Next()
 	}
 }
 
 func main() {
 	app := fiber.New(fiber.Config{
-		ProxyHeader: fiber.HeaderXForwardedFor,
+		// ProxyHeader:             fiber.HeaderXForwardedFor,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          []string{"0.0.0.0/0"},
 	})
 
 	app.Use(realIPMiddleware())
