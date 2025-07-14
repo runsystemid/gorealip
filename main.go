@@ -18,12 +18,16 @@ func realIPMiddleware() fiber.Handler {
 		chain := c.Get("X-Forwarded-For")
 		log.Printf("RealIP: %s | ProxyChain: \"%s\" | %s %s %s",
 			realIP, chain, c.Method(), c.Path(), c.Protocol())
+
+		log.Printf("context IP: %s\n", c.IPs())
 		return c.Next()
 	}
 }
 
 func main() {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ProxyHeader: fiber.HeaderXForwardedFor,
+	})
 
 	app.Use(realIPMiddleware())
 
