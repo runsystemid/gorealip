@@ -7,6 +7,15 @@ import (
 	"github.com/realclientip/realclientip-go"
 )
 
+func getIPFromXForwardedFor() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		ips := c.Get("X-Forwarded-For")
+		log.Printf("print x-forwarded-for: %s\n", ips)
+		// log.Printf("context IP: %s\n", c.IPs())
+		return c.Next()
+	}
+}
+
 func realIPMiddleware() fiber.Handler {
 	strat, err := realclientip.NewRightmostNonPrivateStrategy("X-Forwarded-For")
 	if err != nil {
@@ -18,10 +27,6 @@ func realIPMiddleware() fiber.Handler {
 		chain := c.Get("X-Forwarded-For")
 		log.Printf("RealIP: %s | ProxyChain: \"%s\" | %s %s %s",
 			realIP, chain, c.Method(), c.Path(), c.Protocol())
-
-		// log.Printf("context IP: %s\n", c.IPs())
-
-		log.Printf("print x-forwarded-for: %s\n", c.Get("X-Forwarded-For"))
 		return c.Next()
 	}
 }
@@ -33,6 +38,7 @@ func main() {
 		TrustedProxies:          []string{"0.0.0.0/0"},
 	})
 
+	app.Use(getIPFromXForwardedFor())
 	app.Use(realIPMiddleware())
 
 	app.Get("/", func(c *fiber.Ctx) error {
