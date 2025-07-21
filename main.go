@@ -77,6 +77,9 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello\n")
 	})
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("OK\n")
+	})
 
 	log.Println("Listening on :8080")
 	log.Fatal(app.Listen(":8080"))
